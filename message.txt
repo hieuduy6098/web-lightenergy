@@ -1,0 +1,2 @@
+message:
+{"time":"1588220566559","I_in":10,"I_out":12,"V_in":23,"V_out":45,"light":1,"light1":1,"light2":1,"light3":1,"light4":1}

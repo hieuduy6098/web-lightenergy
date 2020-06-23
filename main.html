@@ -1,0 +1,445 @@
+<head>
+<title>my tittle</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
+
+<script src="https://www.amcharts.com/lib/4/core.js"></script>
+<script src="https://www.amcharts.com/lib/4/charts.js"></script>
+<script src="https://www.amcharts.com/lib/4/themes/dark.js"></script>
+<script src="https://www.amcharts.com/lib/4/themes/animated.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js" type="text/javascript"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    var socket = io();
+    socket.on('sensormes', (data) => {
+        if (data.id=="V_in") {
+        document.getElementById("txtvin").value = data.value;
+        } else if (data.id=="V_out") {
+        document.getElementById("txtvout").value = data.value;
+        } else if (data.id=="I_out") {
+        document.getElementById("txtiout").value = data.value;
+        } else if (data.id=="I_in") {
+        document.getElementById("txtiin").value = data.value;
+        };
+        
+    });
+    socket.on('actuatormes', (data) => {
+        function light() {
+            if (data.value==1) {
+                document.getElementById(data.id).src='img/lighton.PNG';
+            } else if (data.value==0) {
+                document.getElementById(data.id).src='img/lightoff.PNG';
+            } else {
+                document.getElementById(data.id).src='img/lightoff.PNG';
+            };
+        };
+        //light on/off
+        
+        if (data.id=="light1") {
+        light(data);
+        };
+        if (data.id=="light2") {
+        light(data)
+        };
+        if (data.id=="light3") {
+        light(data)
+        };
+        if (data.id=="light4") {
+        light(data)
+        };
+        if (data.id=="light5") {
+        light(data)
+        };
+    });
+</script>
+<!--style-->
+<style>
+    .row1 {
+    width: 100%;
+    text-align: center;
+    }
+    .row1 input {
+        margin: 10px;
+    }
+    .row2 {
+        margin-top: 10px;
+    }
+    .light {
+        text-align: center;
+        margin: auto;
+    }
+    .row3 {
+        text-align: center;
+        margin-top: 10px;
+    }
+    .row4 {
+        text-align: center;
+        margin-top: 10px;
+    }
+
+    #I_in, #U_in, #I_out, #U_out {
+        width: 100%;
+        height: 300px;
+    }
+    
+  
+</style>
+                                                    <!--iinchart-->
+<script>
+    am4core.ready(function() {
+    // Themes begin
+    am4core.useTheme(am4themes_dark);
+    am4core.useTheme(am4themes_animated);
+    // Themes end
+    // Create chart instance
+    var chart = am4core.create("I_in", am4charts.XYChart);
+    socket.on("historymesIin",(data)=>{
+        chart.data = data;
+    });
+    // Increase contrast by taking evey second color
+    chart.colors.step = 2;
+    // Create axes
+    chart.dateFormatter.inputDateFormat = "HH:mm:ss";
+    var dateAxis = chart.xAxes.push(new am4charts.DateAxis());
+    dateAxis.renderer.minGridDistance = 100;
+    dateAxis.baseInterval = {
+    timeUnit: "second",
+    count: 1
+    }
+    // Create series
+    function createAxisAndSeries(field, name, opposite, bullet) {
+    var valueAxis = chart.yAxes.push(new am4charts.ValueAxis());
+    if(chart.yAxes.indexOf(valueAxis) != 0){
+        valueAxis.syncWithAxis = chart.yAxes.getIndex(0);
+    }
+    var series = chart.series.push(new am4charts.LineSeries());
+    series.dataFields.valueY = field;
+    series.dataFields.dateX = "date";
+    series.strokeWidth = 2;
+    series.yAxis = valueAxis;
+    series.name = name;
+    series.tooltipText = "{name}: [bold]{valueY}[/]";
+    series.tensionX = 0.8;
+    series.showOnInit = true;
+    var interfaceColors = new am4core.InterfaceColorSet();
+    switch(bullet) {
+        case "triangle":
+        var bullet = series.bullets.push(new am4charts.Bullet());
+        bullet.width = 5;
+        bullet.height = 5;
+        bullet.horizontalCenter = "middle";
+        bullet.verticalCenter = "middle";
+        
+        var triangle = bullet.createChild(am4core.Triangle);
+        triangle.stroke = interfaceColors.getFor("background");
+        triangle.strokeWidth = 2;
+        triangle.direction = "top";
+        triangle.width = 5;
+        triangle.height = 5;
+        break;
+        
+    }
+    
+    valueAxis.renderer.line.strokeOpacity = 1;
+    valueAxis.renderer.line.strokeWidth = 2;
+    valueAxis.renderer.line.stroke = series.stroke;
+    valueAxis.renderer.labels.template.fill = series.stroke;
+    valueAxis.renderer.opposite = opposite;
+    }
+    createAxisAndSeries("I_in", "I_in", false, "triangle");
+    // Add legend
+    chart.legend = new am4charts.Legend();
+    // Add cursor
+    chart.cursor = new am4charts.XYCursor();
+    }); // end am4core.ready()
+</script>
+                                                    <!--uinchart-->
+<script>
+    am4core.ready(function() {
+    // Themes begin
+    am4core.useTheme(am4themes_dark);
+    am4core.useTheme(am4themes_animated);
+    // Themes end
+    // Create chart instance
+    var chart = am4core.create("U_in", am4charts.XYChart);
+    socket.on("historymesUin",(data)=>{
+        console.log(data);
+        chart.data = data;
+    });
+    // Increase contrast by taking evey second color
+    chart.colors.step = 2;
+    // Create axes
+    chart.dateFormatter.inputDateFormat = "HH:mm:ss";
+    var dateAxis = chart.xAxes.push(new am4charts.DateAxis());
+    dateAxis.renderer.minGridDistance = 100;
+    dateAxis.baseInterval = {
+    timeUnit: "second",
+    count: 1
+    }
+    // Create series
+    function createAxisAndSeries(field, name, opposite, bullet) {
+    var valueAxis = chart.yAxes.push(new am4charts.ValueAxis());
+    if(chart.yAxes.indexOf(valueAxis) != 0){
+        valueAxis.syncWithAxis = chart.yAxes.getIndex(0);
+    }
+    var series = chart.series.push(new am4charts.LineSeries());
+    series.dataFields.valueY = field;
+    series.dataFields.dateX = "date";
+    series.strokeWidth = 2;
+    series.yAxis = valueAxis;
+    series.name = name;
+    series.tooltipText = "{name}: [bold]{valueY}[/]";
+    series.tensionX = 0.8;
+    series.showOnInit = true;
+    var interfaceColors = new am4core.InterfaceColorSet();
+    switch(bullet) {
+        case "triangle":
+        var bullet = series.bullets.push(new am4charts.Bullet());
+        bullet.width = 5;
+        bullet.height = 5;
+        bullet.horizontalCenter = "middle";
+        bullet.verticalCenter = "middle";
+        
+        var triangle = bullet.createChild(am4core.Triangle);
+        triangle.stroke = interfaceColors.getFor("background");
+        triangle.strokeWidth = 2;
+        triangle.direction = "top";
+        triangle.width = 5;
+        triangle.height = 5;
+        break;
+        
+    }
+    
+    valueAxis.renderer.line.strokeOpacity = 1;
+    valueAxis.renderer.line.strokeWidth = 2;
+    valueAxis.renderer.line.stroke = series.stroke;
+    valueAxis.renderer.labels.template.fill = series.stroke;
+    valueAxis.renderer.opposite = opposite;
+    }
+    createAxisAndSeries("U_in", "U_in", false, "triangle");
+    // Add legend
+    chart.legend = new am4charts.Legend();
+    // Add cursor
+    chart.cursor = new am4charts.XYCursor();
+    }); // end am4core.ready()
+</script>
+                                                    <!--Ioutchart-->
+<script>
+    am4core.ready(function() {
+    // Themes begin
+    am4core.useTheme(am4themes_dark);
+    am4core.useTheme(am4themes_animated);
+    // Themes end
+    // Create chart instance
+    var chart = am4core.create("I_out", am4charts.XYChart);
+    socket.on("historymesIout",(data)=>{
+        chart.data = data;
+    });
+    // Increase contrast by taking evey second color
+    chart.colors.step = 2;
+    // Create axes
+    chart.dateFormatter.inputDateFormat = "HH:mm:ss";
+    var dateAxis = chart.xAxes.push(new am4charts.DateAxis());
+    dateAxis.renderer.minGridDistance = 100;
+    dateAxis.baseInterval = {
+    timeUnit: "second",
+    count: 1
+    }
+    // Create series
+    function createAxisAndSeries(field, name, opposite, bullet) {
+    var valueAxis = chart.yAxes.push(new am4charts.ValueAxis());
+    if(chart.yAxes.indexOf(valueAxis) != 0){
+        valueAxis.syncWithAxis = chart.yAxes.getIndex(0);
+    }
+    var series = chart.series.push(new am4charts.LineSeries());
+    series.dataFields.valueY = field;
+    series.dataFields.dateX = "date";
+    series.strokeWidth = 2;
+    series.yAxis = valueAxis;
+    series.name = name;
+    series.tooltipText = "{name}: [bold]{valueY}[/]";
+    series.tensionX = 0.8;
+    series.showOnInit = true;
+    var interfaceColors = new am4core.InterfaceColorSet();
+    switch(bullet) {
+        case "triangle":
+        var bullet = series.bullets.push(new am4charts.Bullet());
+        bullet.width = 5;
+        bullet.height = 5;
+        bullet.horizontalCenter = "middle";
+        bullet.verticalCenter = "middle";
+        
+        var triangle = bullet.createChild(am4core.Triangle);
+        triangle.stroke = interfaceColors.getFor("background");
+        triangle.strokeWidth = 2;
+        triangle.direction = "top";
+        triangle.width = 5;
+        triangle.height = 5;
+        break;
+        
+    }
+    
+    valueAxis.renderer.line.strokeOpacity = 1;
+    valueAxis.renderer.line.strokeWidth = 2;
+    valueAxis.renderer.line.stroke = series.stroke;
+    valueAxis.renderer.labels.template.fill = series.stroke;
+    valueAxis.renderer.opposite = opposite;
+    }
+    createAxisAndSeries("I_out", "I_out", false, "triangle");
+    // Add legend
+    chart.legend = new am4charts.Legend();
+    // Add cursor
+    chart.cursor = new am4charts.XYCursor();
+    }); // end am4core.ready()
+</script>
+                                                    <!--uoutchart-->
+<script>
+    am4core.ready(function() {
+    // Themes begin
+    am4core.useTheme(am4themes_dark);
+    am4core.useTheme(am4themes_animated);
+    // Themes end
+    // Create chart instance
+    var chart = am4core.create("U_out", am4charts.XYChart);
+    socket.on("historymesUout",(data)=>{
+        chart.data = data;
+    });
+    // Increase contrast by taking evey second color
+    chart.colors.step = 2;
+    // Create axes
+    chart.dateFormatter.inputDateFormat = "HH:mm:ss";
+    var dateAxis = chart.xAxes.push(new am4charts.DateAxis());
+    dateAxis.renderer.minGridDistance = 100;
+    dateAxis.baseInterval = {
+    timeUnit: "second",
+    count: 1
+    }
+    // Create series
+    function createAxisAndSeries(field, name, opposite, bullet) {
+    var valueAxis = chart.yAxes.push(new am4charts.ValueAxis());
+    if(chart.yAxes.indexOf(valueAxis) != 0){
+        valueAxis.syncWithAxis = chart.yAxes.getIndex(0);
+    }
+    var series = chart.series.push(new am4charts.LineSeries());
+    series.dataFields.valueY = field;
+    series.dataFields.dateX = "date";
+    series.strokeWidth = 2;
+    series.yAxis = valueAxis;
+    series.name = name;
+    series.tooltipText = "{name}: [bold]{valueY}[/]";
+    series.tensionX = 0.8;
+    series.showOnInit = true;
+    var interfaceColors = new am4core.InterfaceColorSet();
+    switch(bullet) {
+        case "triangle":
+        var bullet = series.bullets.push(new am4charts.Bullet());
+        bullet.width = 5;
+        bullet.height = 5;
+        bullet.horizontalCenter = "middle";
+        bullet.verticalCenter = "middle";
+        
+        var triangle = bullet.createChild(am4core.Triangle);
+        triangle.stroke = interfaceColors.getFor("background");
+        triangle.strokeWidth = 2;
+        triangle.direction = "top";
+        triangle.width = 5;
+        triangle.height = 5;
+        break;
+        
+    }
+    
+    valueAxis.renderer.line.strokeOpacity = 1;
+    valueAxis.renderer.line.strokeWidth = 2;
+    valueAxis.renderer.line.stroke = series.stroke;
+    valueAxis.renderer.labels.template.fill = series.stroke;
+    valueAxis.renderer.opposite = opposite;
+    }
+    createAxisAndSeries("U_out", "U_out", false, "triangle");
+    // Add legend
+    chart.legend = new am4charts.Legend();
+    // Add cursor
+    chart.cursor = new am4charts.XYCursor();
+    }); // end am4core.ready()
+</script>     
+</head>
+<body>
+    <!--Header(navbar)-->
+    <nav class="navbar navbar-expand-sm bg-dark">
+        <div class="nav-item">
+            <a class="nav-link" href="main.html">Trang chu</a>
+        </div>
+    </nav>
+    <!--main-->
+    <div class="container-fluid">
+        <!--row1 electrical-->
+        <div class="row row1">
+            <!--col1 input-->
+            <div class="col col1">
+                V_in: <input type="text" id="txtvin"><br>
+                I_in: <input type="text" id="txtiin">
+            </div>
+            <!--col1 outnput-->
+            <div class="col col2">
+                V_out: <input type="text" id="txtvout"><br>
+                I_out: <input type="text" id="txtiout">
+            </div>
+        </div>
+        <!--row2 light-->
+        <div class="row row2">
+            
+            <div class="light">
+                <img id="light1" src="img/lightoff.PNG" style="width:100px"><br>
+                <button onclick="lighton1()">on</button>
+                <button onclick="lightoff1()">off</button>
+            </div>
+            <div class="light">
+                <img id="light2" src="img/lightoff.PNG" style="width:100px"><br>
+                <button onclick="lighton2()">on</button>
+                <button onclick="lightoff2()">off</button>
+            </div>
+            <div class="light">
+                <img id="light3" src="img/lightoff.PNG" style="width:100px"><br>
+                <button onclick="lighton3()">on</button>
+                <button onclick="lightoff3()">off</button>
+            </div>
+            <div class="light">
+                <img id="light4" src="img/lightoff.PNG" style="width:100px"><br>
+                <button onclick="lighton4()">on</button>
+                <button onclick="lightoff4()">off</button>
+            </div>
+            <div class="light">
+                <img id="light5" src="img/lightoff.PNG" style="width:100px"><br>
+                <button onclick="lighton5()">on</button>
+                <button onclick="lightoff5()">off</button>
+            </div>
+        </div>
+        <!--row3 chart in-->
+        <div class="row row3">
+            <div class="col col1">
+                <h4>I_in chart</h4>
+                <div id="I_in"></div>
+            </div>
+            <div class="col col2">
+                <h4>U_in chart</h4>
+                <div id="U_in"></div>
+            </div>
+        </div>
+        <!--row4 chart out-->
+        <div class="row row4">
+            <div class="col col1">
+                <h4>I_out chart</h4>
+                <div id="I_out"></div>
+            </div>
+            <div class="col col2">
+                <h4>U_out chart</h4>
+                <div id="U_out"></div>
+            </div>
+        </div>
+    </div>
+</body>
